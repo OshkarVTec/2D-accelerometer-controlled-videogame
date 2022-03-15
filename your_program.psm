@@ -1,0 +1,273 @@
+
+        ;Oskar Adolfo Villa Lopez
+        ;Diego Garcia Rueda
+		;Aplicacion para el reto. Utiliza protocolo SPI para comunicarse con el acelermetro y envia los datos por medio de UART.
+        ;Se imprimen datos a traves de los leds y un display de 7 segmentos
+		;memoria de programa de 1k
+
+        ;UART
+		CONSTANT PuertoLeeListoTX,    11
+		CONSTANT PuertoEscribeDatoTX, 12
+		CONSTANT PuertoLeeDatoRX,     13
+		CONSTANT PuertoDatoListoRX,   14
+		CONSTANT PuertoDatoRXLeido,   15
+        ;display
+		CONSTANT PuertoSalida, 		  80
+        ;SPI
+        CONSTANT PuertoEntradaXL, 41
+		CONSTANT PuertoEntradaXM, 42
+		CONSTANT PuertoEntradaYL, 43
+		CONSTANT PuertoEntradaYM, 44
+		CONSTANT PuertoEntradaZL, 45
+		CONSTANT PuertoEntradaZM, 46
+        ;LEDS
+        CONSTANT PuertoSalidaLed, 02
+		;UART
+		NAMEREG s7, DatoSerial
+		NAMEREG s8, EstadoTX
+		NAMEREG s9, EstadoRX
+		NAMEREG	sA, LeidoRX
+        ;SPI
+        NAMEREG s0, RegXMSB
+        NAMEREG s1, RegXLSB
+        NAMEREG s2, RegYMSB
+        NAMEREG s3, RegYLSB
+		NAMEREG s4, RegZMSB
+		NAMEREG s5,	RegZLSB
+		NAMEREG s6, Salida
+        ;Banderas
+        NAMEREG sE, RegYSigno
+        ;
+        NAMEREG sF, estado
+		;inicio de programa
+start:
+		;envia mensaje por tx
+		LOAD		DatoSerial, "P"
+		CALL		tx_uart
+		LOAD		DatoSerial, "i"
+		CALL		tx_uart
+		LOAD		DatoSerial, "c"
+		CALL		tx_uart
+		LOAD		DatoSerial, "o"
+		CALL		tx_uart
+		LOAD		DatoSerial, "B"
+		CALL		tx_uart
+		LOAD		DatoSerial, "l"
+		CALL		tx_uart
+		LOAD		DatoSerial, "a"
+		CALL		tx_uart
+		LOAD		DatoSerial, "z"
+		CALL		tx_uart
+		LOAD		DatoSerial, "e"
+		CALL		tx_uart
+		LOAD		DatoSerial, " "
+		CALL		tx_uart
+		;
+        LOAD        RegYSigno, 00000000'b
+		LOAD 		DatoSerial, 0F
+		OUTPUT 		DatoSerial, PuertoSalida
+		LOAD        Salida, 00001111'b
+        OUTPUT      Salida, PuertoSalidaLed
+		LOAD		estado, 00
+loop:
+        ;revisar rx
+        ;leer datos rx
+        INPUT		EstadoRX, PuertoDatoListoRX
+		COMPARE		EstadoRX, 01
+		CALL		Z, rx_uart    
+        ;imprimir datos en display
+        COMPARE DatoSerial, 30
+		CALL 		Z, cero
+		COMPARE DatoSerial, 31
+		CALL 		Z, uno
+		COMPARE DatoSerial, 32
+		CALL 		Z, dos
+		COMPARE DatoSerial, 33
+		CALL 		Z, tres
+		COMPARE DatoSerial, 34
+		CALL 		Z, cuatro
+		COMPARE DatoSerial, 35
+		CALL 		Z, cinco
+		COMPARE DatoSerial, 36
+		CALL 		Z, seis
+		COMPARE DatoSerial, 37
+		CALL 		Z, siete
+		COMPARE DatoSerial, 38
+		CALL 		Z, ocho
+		COMPARE DatoSerial, 39
+		CALL 		Z, nueve
+		COMPARE DatoSerial, 61
+		CALL 		Z, diez
+		COMPARE DatoSerial, 62
+		CALL 		Z, once
+		COMPARE DatoSerial, 63
+		CALL 		Z, doce
+		COMPARE DatoSerial, 64
+		CALL 		Z, trece
+		COMPARE DatoSerial, 65
+		CALL 		Z, catorce
+		COMPARE DatoSerial, 66
+		CALL 		Z, quince
+		CALL 		delay_1s
+		CALL		delay_1s
+        ;leer datos de SPI
+        INPUT		RegXMSB, PuertoEntradaXM
+		INPUT		RegXLSB, PuertoEntradaXL
+		INPUT		RegYMSB, PuertoEntradaYM
+		INPUT		RegYLSB, PuertoEntradaYL
+		INPUT		RegZMSB, PuertoEntradaZM
+		INPUT		RegZLSB, PuertoEntradaZL
+        ;mascara de bits
+        AND			RegXMSB, 10000000'b
+        AND			RegYMSB, 10000000'b
+        AND			RegZMSB, 10000000'b
+		AND			RegXLSB, 10000000'b
+		AND			RegYLSB, 10000000'b
+		AND			RegZLSB, 10000000'b
+		;revisar transformacion
+        COMPARE		RegYMSB, RegYSigno
+        CALL        NZ, transformar
+        ;mover
+        COMPARE     RegXMSB, 00000000'b
+        JUMP        Z, x_positivo
+        JUMP        x_negativo
+rx_uart:
+		;hay nuevo dato RX, se lee
+		INPUT		DatoSerial, PuertoLeeDatoRX
+		;se retransmite el dato RX
+		;CALL		tx_uart
+		;CALL		delay_1s
+		;se informa de dato RX leido
+		LOAD		LeidoRX, 01
+		OUTPUT		LeidoRX, PuertoDatoRXLeido
+		RETURN
+x_positivo:
+        COMPARE     RegXLSB, 00000000'b
+        JUMP        Z, centro
+        LOAD        Salida, 00000001'b
+        OUTPUT      Salida, PuertoSalidaLed
+        LOAD        Salida,  "d"
+		COMPARE 	estado,  01
+        CALL        NZ, tx_uart
+		LOAD		estado,  01
+        JUMP        loop
+x_negativo:
+        COMPARE     RegXLSB, 10000000'b
+        JUMP        Z, centro
+        LOAD        Salida, 00000100'b
+        OUTPUT      Salida, PuertoSalidaLed
+        LOAD        Salida,  "a"
+		COMPARE 	estado,  02
+        CALL        NZ, tx_uart
+		LOAD		estado,  02
+        JUMP        loop
+centro: 
+        LOAD        Salida, 00000010'b
+        OUTPUT      Salida, PuertoSalidaLed
+        LOAD        Salida,  "w"
+		COMPARE 	estado,  03
+        CALL        NZ, tx_uart
+		LOAD		estado,  03
+        JUMP        loop
+transformar:
+        LOAD        RegYSigno, RegYMSB
+        LOAD        Salida, 00001000'b
+        OUTPUT      Salida, PuertoSalidaLed
+        LOAD        Salida, "t"
+        CALL        tx_uart
+        RETURN
+tx_uart:
+		INPUT		EstadoTX, PuertoLeeListoTX
+		COMPARE		EstadoTX, 01
+		JUMP		Z, tx_uart
+		OUTPUT		Salida, PuertoEscribeDatoTX
+		RETURN
+		;
+		; Software delay of 1 second
+		;
+		; ARTY is fitted with a 100MHz clock.
+		; 1 second is 100,000,000 clock cycles.
+		; KCPSM6 will execute 50,000,000 instructions.
+		;
+		; The delay loop below decrements the 24-bit value held
+		; in registers [s2,s1,s0] until it reaches zero and this
+		; loop consists of 4 instructions.
+		;
+		; Therefore the loop needs to count 12,500,000 times so
+		; the start value is BEBC20 hex.
+		;
+delay_1s: 
+		LOAD sD, BE
+		LOAD sC, BC
+		LOAD sB, 20
+delay_loop: 
+		SUB 		sB, 1'd
+		SUBCY 		sC, 0'd
+		SUBCY 		sD, 0'd
+		JUMP 		NZ, delay_loop
+		RETURN
+		;
+cero:
+	LOAD 			DatoSerial, 00
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+uno:
+	LOAD 			DatoSerial, 01
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+dos:
+	LOAD 			DatoSerial, 02
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+tres:
+	LOAD 			DatoSerial, 03
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+cuatro:
+	LOAD 			DatoSerial, 04
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+cinco:
+	LOAD 			DatoSerial, 05
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+seis:
+	LOAD 			DatoSerial, 06
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+siete:
+	LOAD 			DatoSerial, 07
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+ocho:
+	LOAD 			DatoSerial, 08
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+nueve:
+	LOAD 			DatoSerial, 09
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+diez:
+	LOAD 			DatoSerial, 0A
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+once:
+	LOAD 			DatoSerial, 0B
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+doce:
+	LOAD 			DatoSerial, 0C
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+trece:
+	LOAD 			DatoSerial, 0D
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+catorce:
+	LOAD 			DatoSerial, 0E
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
+quince:
+	LOAD 			DatoSerial, 0F
+	OUTPUT 		DatoSerial, PuertoSalida
+    RETURN
