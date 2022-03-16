@@ -22,7 +22,7 @@ String soundName = "hollow_knight_OST.mp3";
 boolean transform = false;
 String path = "";
 int counter = -1;
-boolean t_flag = false;
+boolean t_flag = true;
  
  //SETUP/////////////////////////////
 void setup() {
@@ -45,11 +45,11 @@ void draw() {
     fill(0);
     textSize(30);
     text("By:", 620, 500);
-    text("Diego Garcia Rueda:", 220, 550);
-    text("Oskar Adolfo Villa López:", 750, 550);
+    text("Diego Garcia Rueda", 220, 550);
+    text("Oskar Adolfo Villa López", 750, 550);
     text("Presione ENTER para iniciar", 450, 600);
   }
-  else if (counter == 3){
+  else if (counter > 2){
    //Ending screen/ GAME OVER screen
    fill(0);
    background(255); 
@@ -70,9 +70,17 @@ void draw() {
   if (inByte == 'a'){println('a');right=false; left = true;}
   if (inByte == 'd'){println('d');right=true; left = false;}
   if (inByte == 'w'){println('w');right=false; left = false;}
-  if (inByte == 't' && !t_flag ) t_flag = true; 
-    if (transform == true){transform = false;}
-    else {transform = true;}
+  if (inByte == 't' && !t_flag ){ 
+  t_flag = true;  
+  if (transform == true){
+    transform = false;}
+  else{
+    transform = true;
+  }
+  }
+  else{
+    t_flag = false;
+  }
   
   if (!transform){
     p1.update();
@@ -93,7 +101,6 @@ void draw() {
      if ((abs(p1.x - b1.x) < 79) && (abs(p1.y - b1.y) < 79)){
     counter++;
     level_Restart();
-    setup();
     }
    }
   }
@@ -140,10 +147,10 @@ void keyPressed() {
     case 'a': left = true; break;
     case 32: up = true; break;
     case 't': 
-      if (transform == true){
+      if (transform == true ){
         transform = false;
       }
-      else if (transform == false){
+      else if(transform == false){
         transform = true;
       }
       break;  
