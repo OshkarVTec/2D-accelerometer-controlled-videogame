@@ -108,8 +108,6 @@ loop:
 		CALL 		Z, catorce
 		COMPARE DatoSerial, 66
 		CALL 		Z, quince
-		CALL 		delay_1s
-		CALL		delay_1s
         ;leer datos de SPI
         INPUT		RegXMSB, PuertoEntradaXM
 		INPUT		RegXLSB, PuertoEntradaXL
@@ -121,13 +119,14 @@ loop:
         AND			RegXMSB, 10000000'b
         AND			RegYMSB, 10000000'b
         AND			RegZMSB, 10000000'b
-		AND			RegXLSB, 10000000'b
-		AND			RegYLSB, 10000000'b
+		AND			RegXLSB, 11100000'b
+		AND			RegYLSB, 11000000'b
 		AND			RegZLSB, 10000000'b
 		;revisar transformacion
-        COMPARE		RegYMSB, RegYSigno
-        CALL        NZ, transformar
+        COMPARE		RegYMSB, 00000000'b
+        JUMP        Z, transformar
         ;mover
+mover:
         COMPARE     RegXMSB, 00000000'b
         JUMP        Z, x_positivo
         JUMP        x_negativo
@@ -152,7 +151,7 @@ x_positivo:
 		LOAD		estado,  01
         JUMP        loop
 x_negativo:
-        COMPARE     RegXLSB, 10000000'b
+        COMPARE     RegXLSB, 11100000'b
         JUMP        Z, centro
         LOAD        Salida, 00000100'b
         OUTPUT      Salida, PuertoSalidaLed
@@ -170,12 +169,16 @@ centro:
 		LOAD		estado,  03
         JUMP        loop
 transformar:
-        LOAD        RegYSigno, RegYMSB
+		COMPARE		RegYLSB, 11000000'b
+		JUMP 		NZ, mover
         LOAD        Salida, 00001000'b
         OUTPUT      Salida, PuertoSalidaLed
-        LOAD        Salida, "t"
-        CALL        tx_uart
-        RETURN
+        LOAD        Salida,  "t"
+		COMPARE 	estado,  04
+        CALL        NZ, tx_uart
+		LOAD		estado,  04
+		CALL		delay_1s
+        JUMP 		loop
 tx_uart:
 		INPUT		EstadoTX, PuertoLeeListoTX
 		COMPARE		EstadoTX, 01
