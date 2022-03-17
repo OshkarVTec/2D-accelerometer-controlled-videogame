@@ -1,13 +1,14 @@
+import processing.sound.*;
+import processing.serial.*;
+
 PImage bgd;
+PImage start;
+PFont Monserrat;
 int ratio = 80;
 
 final int WIDTH = 16;
 final int HEIGHT = 8;
 int[][] level = new int[HEIGHT][WIDTH];
-
-import processing.sound.*;
-import processing.serial.*;
-
 
 Serial port;
 Player p1;
@@ -20,22 +21,45 @@ boolean right = false, left = false, up = false;
 String soundName = "hollow_knight_OST.mp3";
 boolean transform = false;
 String path = "";
-int counter = 0;
-boolean t_flag = false;
+int counter = -1;
+boolean t_flag = true;
  
  //SETUP/////////////////////////////
 void setup() {
   size(1280,640);
-  port = new Serial(this, "COM4", 115200);
+  port = new Serial(this, "COM6", 115200);
   p1 = new Player(WIDTH*10,HEIGHT*10, width);
   b1 = new Mask (r* 80, 0);
   path = sketchPath (soundName);
   bgd_sound = new SoundFile(this, path);
   bgd_sound.play();
-  //bgd = loadImage ("City_of_Tears.jpg");
+  counter = -1;
+  bgd = loadImage ("City_of_Tears.jpg");
+  start = loadImage("title.jpg");
 }
 void draw() {
-  background (120);
+  if (counter == -1){
+    //Start screen 
+    background(255);
+    image(start,140, 100 );
+    fill(0);
+    textSize(30);
+    text("By:", 620, 500);
+    text("Diego Garcia Rueda", 220, 550);
+    text("Oskar Adolfo Villa López", 750, 550);
+    text("Presione ENTER para iniciar", 450, 600);
+  }
+  else if (counter > 2){
+   //Ending screen/ GAME OVER screen
+   port.write(str(counter));
+   fill(0);
+   background(255); 
+   textSize(60);
+   text("Thanks for Playing!", 380, 320);
+   
+  }
+  else{
+  background (bgd);
   b1.display();
    if (0 < port.available()) { 
     port.write(str(counter));
@@ -44,18 +68,23 @@ void draw() {
     
    // println(inByte);
   } 
-  if (inByte == 'a'){println('a');right=false; left = true;}
-  if (inByte == 'd'){println('d');right=true; left = false;}
-  if (inByte == 'w'){println('w');right=false; left = false;}
-  if (inByte == 't' && !t_flag ){println('t'); t_flag = true; 
-    if (transform == true){transform = false;}
-    else {transform = true;}}
+  if (inByte == 'a'){println('a');right=false; left = true; t_flag = false;}
+  if (inByte == 'd'){println('d');right=true; left = false; t_flag = false;}
+  if (inByte == 'w'){println('w');right=false; left = false; t_flag = false;} 
+  if (inByte == 't' && !t_flag ){ 
+  t_flag = true;  
+  if (transform == true){
+    transform = false;}
+  else{
+    transform = true;
+  }
+  }
   
   if (!transform){
     p1.update();
     p1.display();
     level_Creation();
-    p1.show();
+    //p1.show();
     if ((abs(p1.x - b1.x) < 79) && (abs(p1.y - b1.y) < 79)){
     counter++;
     level_Restart();
@@ -66,14 +95,15 @@ void draw() {
     p1.alt_update();
     p1.alt_display(); 
     level_Creation();
-    p1.show();
+    //p1.show();
      if ((abs(p1.x - b1.x) < 79) && (abs(p1.y - b1.y) < 79)){
     counter++;
     level_Restart();
-    setup();
     }
+   }
   }
 }
+
  
  void level_Creation(){
   fill(0);
@@ -81,7 +111,9 @@ void draw() {
   for ( int ix = 0; ix < WIDTH; ix++ ) {
     for ( int iy = 0; iy < HEIGHT; iy++ ) {
       switch(level[iy][ix]) {
-        case 1: rect(ix*80,iy*80,80,80);
+        case 1: 
+          fill(color(52,73,94));
+          rect(ix*80,iy*80,80,80);
       }
     }
   }
@@ -106,7 +138,6 @@ void level_Restart(){
       }
     }
     b1.change_position();
-    println("Posicion random: " + b1.x);
   }
 
 
@@ -116,13 +147,18 @@ void keyPressed() {
     case 'a': left = true; break;
     case 32: up = true; break;
     case 't': 
-      if (transform == true){
+      if (transform == true ){
         transform = false;
       }
-      else if (transform == false){
+      else if(transform == false){
         transform = true;
       }
-      break;  }
+      break;  
+   case ENTER: 
+     if (counter == -1){
+       counter++;
+     }break;
+  }    
 }
 void keyReleased() {
   switch(key) {
