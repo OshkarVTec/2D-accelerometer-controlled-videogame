@@ -1,14 +1,13 @@
-import processing.sound.*;
-import processing.serial.*;
-
 PImage bgd;
-PImage start;
-PFont Monserrat;
 int ratio = 80;
 
 final int WIDTH = 16;
 final int HEIGHT = 8;
 int[][] level = new int[HEIGHT][WIDTH];
+
+import processing.sound.*;
+import processing.serial.*;
+
 
 Serial port;
 Player p1;
@@ -21,44 +20,22 @@ boolean right = false, left = false, up = false;
 String soundName = "hollow_knight_OST.mp3";
 boolean transform = false;
 String path = "";
-int counter = -1;
-boolean t_flag = true;
+int counter = 0;
+boolean t_flag = false;
  
  //SETUP/////////////////////////////
 void setup() {
   size(1280,640);
-  port = new Serial(this, "COM6", 115200);
+  port = new Serial(this, "COM4", 115200);
   p1 = new Player(WIDTH*10,HEIGHT*10, width);
   b1 = new Mask (r* 80, 0);
   path = sketchPath (soundName);
   bgd_sound = new SoundFile(this, path);
   bgd_sound.play();
-  counter = -1;
-  bgd = loadImage ("City_of_Tears.jpg");
-  start = loadImage("title.jpg");
+  //bgd = loadImage ("City_of_Tears.jpg");
 }
 void draw() {
-  if (counter == -1){
-    //Start screen 
-    background(255);
-    image(start,140, 100 );
-    fill(0);
-    textSize(30);
-    text("By:", 620, 500);
-    text("Diego Garcia Rueda", 220, 550);
-    text("Oskar Adolfo Villa López", 750, 550);
-    text("Presione ENTER para iniciar", 450, 600);
-  }
-  else if (counter > 2){
-   //Ending screen/ GAME OVER screen
-   fill(0);
-   background(255); 
-   textSize(60);
-   text("Thanks for Playing!", 380, 320);
-   
-  }
-  else{
-  background (bgd);
+  background (120);
   b1.display();
    if (0 < port.available()) { 
     port.write(str(counter));
@@ -70,17 +47,9 @@ void draw() {
   if (inByte == 'a'){println('a');right=false; left = true;}
   if (inByte == 'd'){println('d');right=true; left = false;}
   if (inByte == 'w'){println('w');right=false; left = false;}
-  if (inByte == 't' && !t_flag ){ 
-  t_flag = true;  
-  if (transform == true){
-    transform = false;}
-  else{
-    transform = true;
-  }
-  }
-  else{
-    t_flag = false;
-  }
+  if (inByte == 't' && !t_flag ){println('t'); t_flag = true; 
+    if (transform == true){transform = false;}
+    else {transform = true;}}
   
   if (!transform){
     p1.update();
@@ -101,11 +70,10 @@ void draw() {
      if ((abs(p1.x - b1.x) < 79) && (abs(p1.y - b1.y) < 79)){
     counter++;
     level_Restart();
+    setup();
     }
-   }
   }
 }
-
  
  void level_Creation(){
   fill(0);
@@ -138,6 +106,7 @@ void level_Restart(){
       }
     }
     b1.change_position();
+    println("Posicion random: " + b1.x);
   }
 
 
@@ -147,18 +116,13 @@ void keyPressed() {
     case 'a': left = true; break;
     case 32: up = true; break;
     case 't': 
-      if (transform == true ){
+      if (transform == true){
         transform = false;
       }
-      else if(transform == false){
+      else if (transform == false){
         transform = true;
       }
-      break;  
-   case ENTER: 
-     if (counter == -1){
-       counter++;
-     }break;
-  }    
+      break;  }
 }
 void keyReleased() {
   switch(key) {
